@@ -2,7 +2,7 @@
  * seed.js  –  run once to populate MongoDB with all initial data
  * Usage:  node seed.js
  *
- * Make sure MONGO_URI is set in .env (or defaults to mongodb://localhost:27017/lbs_db)
+ * Make sure MONGO_URI is set in .env (or defaults to mongodb://localhost:27017/Logistics_booking_system)
  */
 require('dotenv').config();
 const mongoose = require('mongoose');
