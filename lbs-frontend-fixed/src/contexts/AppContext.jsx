@@ -1,61 +1,57 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import {
-  mockBookings as initialBookings,
-  mockVenues as initialVenues,
-  mockUsers as initialUsers,
-  mockNotifications as initialNotifications,
-  mockEquipmentRequests as initialEquipmentRequests,
-  mockCompromiseRequests as initialCompromiseRequests,
-} from '@/data/mockData';
+
 import { api } from '@/lib/api';
 
 const AppContext = createContext(undefined);
 
 export const AppProvider = ({ children }) => {
-  const [bookings, setBookings]                     = useState(initialBookings);
-  const [venues, setVenues]                         = useState(initialVenues);
-  const [users, setUsers]                           = useState(initialUsers);
-  const [notifications, setNotifications]           = useState(initialNotifications);
-  const [equipmentRequests, setEquipmentRequests]   = useState(initialEquipmentRequests);
-  const [compromiseRequests, setCompromiseRequests] = useState(initialCompromiseRequests);
+const [bookings, setBookings] = useState([]);
+const [venues, setVenues] = useState([]);
+const [users, setUsers] = useState([]);
+const [notifications, setNotifications] = useState([]);
+const [equipmentRequests, setEquipmentRequests] = useState([]);
+const [compromiseRequests, setCompromiseRequests] = useState([]);
 
-  // Try to load real data from backend.
-  // If the token is missing or backend is down, mock data stays — UI never breaks.
-  useEffect(() => {
-    // Always try to load real data if backend is available.
-    // Falls back to mock data silently if token missing or backend is down.
-    const loadData = async () => {
-      try {
-        const [v, b, n, er, cr, u] = await Promise.all([
-          api.get('/venues'),
-          api.get('/bookings'),
-          api.get('/notifications'),
-          api.get('/equipment-requests'),
-          api.get('/compromise-requests'),
-          api.get('/users'),
-        ]);
-        setVenues(v);
-        setBookings(b);
-        setNotifications(n);
-        setEquipmentRequests(er);
-        setCompromiseRequests(cr);
-        setUsers(u);
-      } catch (err) {
-        console.warn('Backend unavailable, using mock data:', err.message);
-      }
-    };
+  // Load real data from backend if token exists
+const [loading, setLoading] = useState(true);
 
-    loadData();
-  }, []);
-
+useEffect(() => {
+  const token = localStorage.getItem('lbs_token');
+  if (!token) {
+    setLoading(false);
+    return;
+  }
+  const loadData = async () => {
+    try {
+      const [v, b, n, er, cr, u] = await Promise.all([
+        api.get('/venues'),
+        api.get('/bookings'),
+        api.get('/notifications'),
+        api.get('/equipment-requests'),
+        api.get('/compromise-requests'),
+        api.get('/users'),
+      ]);
+      setVenues(v);
+      setBookings(b);
+      setNotifications(n);
+      setEquipmentRequests(er);
+      setCompromiseRequests(cr);
+      setUsers(u);
+    } catch (err) {
+      console.warn('Failed to load data:', err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  loadData();
+}, []);
   // ── Bookings ─────────────────────────────────────────────
   const approveBooking = useCallback(async (bookingId) => {
     try {
       const updated = await api.put(`/bookings/${bookingId}/approve`, {});
       setBookings(prev => prev.map(b => b.id === bookingId ? updated : b));
     } catch {
-      // fallback: update locally
-      setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: 'approved' } : b));
+      setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: 'confirmed' } : b));
     }
   }, []);
 
@@ -68,26 +64,19 @@ export const AppProvider = ({ children }) => {
     }
   }, []);
 
-  const createBooking = useCallback(async (data) => {
-    try {
-      const newBooking = await api.post('/bookings', data);
-      setBookings(prev => [newBooking, ...prev]);
-      return newBooking;
-    } catch {
-      const newBooking = { ...data, id: 'b' + Date.now(), status: 'pending', createdAt: new Date().toISOString() };
-      setBookings(prev => [newBooking, ...prev]);
-      return newBooking;
-    }
-  }, []);
-
+  // Instant booking — status is 'confirmed' immediately
+const createBooking = useCallback(async (data) => {
+  const newBooking = await api.post('/bookings', data);
+  setBookings(prev => [newBooking, ...prev]);
+  return newBooking;
+}, []);
   // ── Venues ───────────────────────────────────────────────
   const addVenue = useCallback(async (data) => {
     try {
       const newVenue = await api.post('/venues', data);
       setVenues(prev => [...prev, newVenue]);
     } catch {
-      const newVenue = { ...data, id: 'v' + Date.now(), status: data.status || 'available' };
-      setVenues(prev => [...prev, newVenue]);
+      setVenues(prev => [...prev, { ...data, id: 'v' + Date.now(), status: data.status || 'available' }]);
     }
   }, []);
 
@@ -101,9 +90,7 @@ export const AppProvider = ({ children }) => {
   }, []);
 
   const deleteVenue = useCallback(async (venueId) => {
-    try {
-      await api.delete(`/venues/${venueId}`);
-    } catch {}
+    try { await api.delete(`/venues/${venueId}`); } catch {}
     setVenues(prev => prev.filter(v => v.id !== venueId));
   }, []);
 
@@ -132,9 +119,7 @@ export const AppProvider = ({ children }) => {
   }, []);
 
   const deleteUser = useCallback(async (userId) => {
-    try {
-      await api.delete(`/users/${userId}`);
-    } catch {}
+    try { await api.delete(`/users/${userId}`); } catch {}
     setUsers(prev => prev.filter(u => u.id !== userId));
   }, []);
 
@@ -198,11 +183,50 @@ export const AppProvider = ({ children }) => {
     try {
       const updated = await api.put(`/compromise-requests/${reqId}`, { status });
       setCompromiseRequests(prev => prev.map(r => r.id === reqId ? updated : r));
+
+      // If accepted — update local booking state too (cancel old, add new)
+      if (status === 'accepted') {
+        const cReq = compromiseRequests.find(r => r.id === reqId);
+        if (cReq) {
+          // Cancel the original booking
+          setBookings(prev => prev.map(b =>
+            b.id === cReq.bookingId ? { ...b, status: 'cancelled' } : b
+          ));
+          // Add new confirmed booking for requesting faculty
+          const newBooking = {
+            id: 'b' + Date.now(),
+            venueId:       cReq.venueId,
+            venueName:     cReq.venueName,
+            facultyId:     cReq.fromFacultyId,
+            facultyName:   cReq.fromFacultyName,
+            date:          cReq.date,
+            timeSlotId:    cReq.timeSlotId,
+            timeSlotLabel: cReq.timeSlot,
+            purpose:       `Transferred from ${cReq.toFacultyName}`,
+            notes:         `Request reason: ${cReq.reason}`,
+            equipmentNeeded: [],
+            status:        'confirmed',
+            createdAt:     new Date().toISOString(),
+          };
+          setBookings(prev => [newBooking, ...prev]);
+        }
+      }
     } catch {
       setCompromiseRequests(prev => prev.map(r => r.id === reqId ? { ...r, status } : r));
     }
-  }, []);
+  }, [compromiseRequests]);
 
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-3">
+          <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
   return (
     <AppContext.Provider value={{
       bookings, venues, users, notifications, equipmentRequests, compromiseRequests,
@@ -217,6 +241,7 @@ export const AppProvider = ({ children }) => {
     </AppContext.Provider>
   );
 };
+
 
 export const useApp = () => {
   const ctx = useContext(AppContext);

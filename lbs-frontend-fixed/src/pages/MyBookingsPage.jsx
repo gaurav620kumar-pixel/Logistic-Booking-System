@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CalendarCheck, Clock, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { CalendarCheck, Clock, XCircle, AlertCircle } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -15,23 +15,26 @@ export default function MyBookingsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   if (!user) return null;
 
-  // ✅ FIX HERE (_id instead of id)
   const myBookings = bookings.filter(b => b.facultyId === user.id);
-
   const filtered = statusFilter === 'all'
     ? myBookings
     : myBookings.filter(b => b.status === statusFilter);
 
-  const statusIcon = { approved: CheckCircle2, pending: Clock, rejected: XCircle };
-  const statusColor = { approved: 'text-success', pending: 'text-warning', rejected: 'text-destructive' };
-  const statusVariant = (s) => s === 'approved' ? 'default' : s === 'pending' ? 'secondary' : 'destructive';
+  const statusIcon  = { confirmed: CalendarCheck, cancelled: XCircle, rejected: XCircle };
+  const statusColor = { confirmed: 'text-success', cancelled: 'text-muted-foreground', rejected: 'text-destructive' };
+
+  const statusBadgeClass = (s) =>
+    s === 'confirmed' ? 'bg-success/20 text-success border-success/30' :
+    s === 'cancelled' ? 'bg-muted text-muted-foreground border-border' :
+    s === 'rejected'  ? 'bg-destructive/20 text-destructive border-destructive/30' :
+    'bg-warning/20 text-warning border-warning/30';
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-heading font-bold text-foreground">My Bookings</h1>
-          <p className="text-sm text-muted-foreground mt-1">Track all your venue booking requests</p>
+          <p className="text-sm text-muted-foreground mt-1">All your venue bookings</p>
         </div>
         <div className="flex gap-2">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -40,9 +43,9 @@ export default function MyBookingsPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All ({myBookings.length})</SelectItem>
-              <SelectItem value="pending">Pending ({myBookings.filter(b=>b.status==='pending').length})</SelectItem>
-              <SelectItem value="approved">Approved ({myBookings.filter(b=>b.status==='approved').length})</SelectItem>
-              <SelectItem value="rejected">Rejected ({myBookings.filter(b=>b.status==='rejected').length})</SelectItem>
+              <SelectItem value="confirmed">Confirmed ({myBookings.filter(b => b.status === 'confirmed').length})</SelectItem>
+              <SelectItem value="cancelled">Cancelled ({myBookings.filter(b => b.status === 'cancelled').length})</SelectItem>
+              <SelectItem value="rejected">Rejected ({myBookings.filter(b => b.status === 'rejected').length})</SelectItem>
             </SelectContent>
           </Select>
           <Button size="sm" className="gradient-primary text-primary-foreground" onClick={() => navigate('/book')}>
@@ -62,8 +65,8 @@ export default function MyBookingsPage() {
       ) : (
         <div className="space-y-3">
           {filtered.map(b => {
-            const Icon = statusIcon[b.status] || AlertCircle;
-            const iconColor = statusColor[b.status] || 'text-muted-foreground';
+            const Icon       = statusIcon[b.status]  || AlertCircle;
+            const iconColor  = statusColor[b.status] || 'text-muted-foreground';
             return (
               <Card key={b.id} className="shadow-card hover:shadow-card-hover transition-shadow">
                 <CardContent className="p-4">
@@ -74,7 +77,9 @@ export default function MyBookingsPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         <p className="font-semibold text-sm text-foreground">{b.purpose}</p>
-                        <Badge variant={statusVariant(b.status)} className="capitalize shrink-0">{b.status}</Badge>
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border capitalize shrink-0 ${statusBadgeClass(b.status)}`}>
+                          {b.status}
+                        </span>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
                         {b.venueName} • {b.date} • {b.timeSlotLabel}
@@ -89,11 +94,9 @@ export default function MyBookingsPage() {
                       {b.notes && (
                         <p className="text-xs text-muted-foreground/70 mt-1 italic">Note: {b.notes}</p>
                       )}
-                      {b.status === 'approved' && (
-                        <button
-                          className="text-xs text-primary hover:underline mt-1.5 flex items-center gap-1"
-                          onClick={() => navigate('/requests')}
-                        >
+                      {b.status === 'confirmed' && (
+                        <button className="text-xs text-primary hover:underline mt-1.5 flex items-center gap-1"
+                          onClick={() => navigate('/requests')}>
                           + Request equipment setup for this booking
                         </button>
                       )}

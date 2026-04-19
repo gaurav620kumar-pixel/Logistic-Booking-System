@@ -36,41 +36,33 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  // Quick dev login — uses mock data. Uses real login API to get a token so backend saves work.
-  const loginAs = useCallback(async (role) => {
-    // Map role to seeded credentials (must match seed.js)
-    // These match the seeded users in seed.js (password: college@123)
-    const credentials = {
-      admin:   { email: 'meena@college.edu',  password: 'college@123' },
-      faculty: { email: 'priya@college.edu',  password: 'college@123' },
-      staff:   { email: 'rajesh@college.edu', password: 'college@123' },
-    };
-    const creds = credentials[role];
-    if (creds) {
-      try {
-        const res = await fetch('http://localhost:5000/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(creds),
-        });
-        const data = await res.json();
-        if (res.ok) {
-          setUser(data.user);
-          localStorage.setItem('lbs_token', data.token);
-          localStorage.setItem('lbs_user', JSON.stringify(data.user));
-          window.location.reload();
-          return;
-        }
-      } catch {}
-    }
-    // Fallback: use mock data without token (bookings won't save to DB)
-    const found = mockUsers.find(u => u.role === role);
-    if (found) {
-      setUser(found);
-      localStorage.setItem('lbs_user', JSON.stringify(found));
-      localStorage.removeItem('lbs_token');
-    }
-  }, []);
+  // Quick dev login — uses mock data directly, no API call needed
+ const loginAs = useCallback(async (role) => {
+  const roleEmails = {
+    admin:   'meena@college.edu',
+    faculty: 'priya@college.edu',
+    staff:   'rajesh@college.edu',
+  };
+  const email = roleEmails[role];
+  if (!email) return;
+
+  try {
+    const res = await fetch('http://localhost:5000/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: 'college@123' }),
+    });
+    const data = await res.json();
+    if (!res.ok) return;
+
+    setUser(data.user);
+    localStorage.setItem('lbs_token', data.token);
+    localStorage.setItem('lbs_user', JSON.stringify(data.user));
+    window.location.reload();
+  } catch (err) {
+    console.error('Quick login error:', err);
+  }
+}, []);
 
   const logout = useCallback(() => {
     setUser(null);

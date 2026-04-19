@@ -1,17 +1,14 @@
-const router = require('express').Router();
+const router   = require('express').Router();
 const TimeSlot = require('../models/TimeSlot');
-const authMiddleware = require('../middleware/auth');
+const auth     = require('../middleware/auth');
 
-router.use(authMiddleware);
+router.use(auth);
 
-// GET /api/timeslots
 router.get('/', async (req, res) => {
   try {
-    const slots = await TimeSlot.find({}, { _id: 0, __v: 0 });
+    const slots = await TimeSlot.find({}, { __v: 0 }).sort({ id: 1 });
     res.json(slots);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 module.exports = router;
