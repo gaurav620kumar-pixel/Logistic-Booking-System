@@ -1,51 +1,45 @@
 import { useApp } from '@/contexts/AppContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
-import { toast } from 'sonner';
+import { AlertCircle } from 'lucide-react';
 import { useState } from 'react';
 
 export default function AllBookingsPage() {
-  const { bookings, approveBooking, rejectBooking } = useApp();
+  const { bookings } = useApp();
   const [statusFilter, setStatusFilter] = useState('all');
-  const [rejectingId, setRejectingId] = useState(null);
-  const [rejectReason, setRejectReason] = useState('');
 
-  const filtered = statusFilter === 'all' ? bookings : bookings.filter(b => b.status === statusFilter);
+  const filtered = statusFilter === 'all'
+    ? bookings
+    : bookings.filter(b => b.status === statusFilter);
 
-  // ✅ FIX: make async
-  const handleApprove = async (id) => {
-    await approveBooking(id);
-    toast.success('Booking approved! Faculty has been notified.');
-  };
+  const statusVariant = (s) =>
+    s === 'confirmed' ? 'default' :
+    s === 'cancelled' ? 'secondary' :
+    s === 'rejected'  ? 'destructive' : 'secondary';
 
-  const handleReject = async (id) => {
-    await rejectBooking(id, rejectReason);
-    setRejectingId(null);
-    setRejectReason('');
-    toast.info('Booking rejected. Faculty has been notified.');
-  };
-
-  const statusVariant = (s) => s === 'approved' ? 'default' : s === 'pending' ? 'secondary' : 'destructive';
+  const statusColor = (s) =>
+    s === 'confirmed' ? 'bg-success/20 text-success border-success/30' :
+    s === 'cancelled' ? 'bg-muted text-muted-foreground border-border' :
+    s === 'rejected'  ? 'bg-destructive/20 text-destructive border-destructive/30' :
+    'bg-warning/20 text-warning border-warning/30';
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-heading font-bold text-foreground">All Bookings</h1>
-          <p className="text-sm text-muted-foreground mt-1">Review and manage all venue bookings</p>
+          <p className="text-sm text-muted-foreground mt-1">Overview of all venue bookings</p>
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-44">
             <SelectValue placeholder="Filter" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All ({bookings.length})</SelectItem>
-            <SelectItem value="pending">Pending ({bookings.filter(b=>b.status==='pending').length})</SelectItem>
-            <SelectItem value="approved">Approved ({bookings.filter(b=>b.status==='approved').length})</SelectItem>
-            <SelectItem value="rejected">Rejected ({bookings.filter(b=>b.status==='rejected').length})</SelectItem>
+            <SelectItem value="confirmed">Confirmed ({bookings.filter(b => b.status === 'confirmed').length})</SelectItem>
+            <SelectItem value="cancelled">Cancelled ({bookings.filter(b => b.status === 'cancelled').length})</SelectItem>
+            <SelectItem value="rejected">Rejected ({bookings.filter(b => b.status === 'rejected').length})</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -78,42 +72,14 @@ export default function AllBookingsPage() {
                       ))}
                     </div>
                   )}
+                  <p className="text-[10px] text-muted-foreground/50 mt-1">
+                    Booked {new Date(b.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </p>
                 </div>
-                <div className="flex items-center gap-2 shrink-0 flex-wrap">
-                  <Badge variant={statusVariant(b.status)} className="capitalize">
-                    {b.status}
-                  </Badge>
-                  {b.status === 'pending' && (
-                    <div className="flex gap-1">
-                      <Button size="sm" variant="default" onClick={() => handleApprove(b.id)}
-                        className="bg-success hover:bg-success/90 text-success-foreground">
-                        <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Approve
-                      </Button>
-                      <Button size="sm" variant="outline" className="text-destructive border-destructive/40 hover:bg-destructive/10"
-                        onClick={() => { setRejectingId(b.id); setRejectReason(''); }}>
-                        <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border capitalize shrink-0 ${statusColor(b.status)}`}>
+                  {b.status}
+                </span>
               </div>
-
-              {rejectingId === b.id && (
-                <div className="mt-3 p-3 bg-destructive/5 border border-destructive/20 rounded-lg space-y-2">
-                  <p className="text-xs font-medium text-foreground">Rejection reason (optional):</p>
-                  <textarea
-                    className="w-full text-xs rounded border border-border bg-background p-2 resize-none focus:outline-none focus:ring-1 focus:ring-primary"
-                    rows={2}
-                    placeholder="Enter reason for rejection..."
-                    value={rejectReason}
-                    onChange={e => setRejectReason(e.target.value)}
-                  />
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="destructive" onClick={() => handleReject(b.id)}>Confirm Reject</Button>
-                    <Button size="sm" variant="ghost" onClick={() => setRejectingId(null)}>Cancel</Button>
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
         ))}
