@@ -5,6 +5,7 @@ const auth   = require('../middleware/auth');
 
 router.use(auth);
 
+// GET /api/users
 router.get('/', async (req, res) => {
   try {
     const users = await User.find({}, { password: 0, __v: 0 });
@@ -12,6 +13,7 @@ router.get('/', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// POST /api/users
 router.post('/', async (req, res) => {
   try {
     const { name, email, phone, department, role } = req.body;
@@ -22,15 +24,19 @@ router.post('/', async (req, res) => {
       return res.status(409).json({ error: 'A user with this email already exists' });
 
     const user = await new User({
-      id: 'u' + Date.now(), name, email,
-      phone: phone || '', department, role,
+      id: 'u' + Date.now(),
+      name, email,
+      phone: phone || '',
+      department, role,
       password: bcrypt.hashSync('college@123', 10),
     }).save();
+
     const { password, __v, ...safe } = user.toObject();
     res.status(201).json(safe);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// PUT /api/users/:id
 router.put('/:id', async (req, res) => {
   try {
     const { name, email, phone, department, role } = req.body;
@@ -44,6 +50,7 @@ router.put('/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// DELETE /api/users/:id
 router.delete('/:id', async (req, res) => {
   try {
     const user = await User.findOneAndDelete({ id: req.params.id });

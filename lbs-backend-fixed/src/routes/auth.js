@@ -1,8 +1,8 @@
-const router  = require('express').Router();
-const bcrypt  = require('bcryptjs');
-const jwt     = require('jsonwebtoken');
-const User    = require('../models/User');
-const auth    = require('../middleware/auth');
+const router     = require('express').Router();
+const bcrypt     = require('bcryptjs');
+const jwt        = require('jsonwebtoken');
+const User       = require('../models/User');
+const authMiddleware = require('../middleware/auth');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'lbs-secret-key-jims-2026';
 
@@ -22,7 +22,8 @@ router.post('/login', async (req, res) => {
       JWT_SECRET,
       { expiresIn: '7d' }
     );
-    const { password: _, ...safeUser } = user.toObject();
+
+    const { password: _, __v, ...safeUser } = user.toObject();
     res.json({ user: safeUser, token });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -30,12 +31,11 @@ router.post('/login', async (req, res) => {
 });
 
 // GET /api/auth/me
-router.get('/me', auth, async (req, res) => {
+router.get('/me', authMiddleware, async (req, res) => {
   try {
-    const user = await User.findOne({ id: req.user.id });
+    const user = await User.findOne({ id: req.user.id }, { password: 0, __v: 0 });
     if (!user) return res.status(404).json({ error: 'User not found' });
-    const { password: _, ...safeUser } = user.toObject();
-    res.json(safeUser);
+    res.json(user);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

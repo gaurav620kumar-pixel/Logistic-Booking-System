@@ -1,36 +1,35 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-
 import { api } from '@/lib/api';
 
 const AppContext = createContext(undefined);
 
+const fetchAllData = async () => {
+  const [v, b, n, er, cr, u] = await Promise.all([
+    api.get('/venues'),
+    api.get('/bookings'),
+    api.get('/notifications'),
+    api.get('/equipment-requests'),
+    api.get('/compromise-requests'),
+    api.get('/users'),
+  ]);
+  return { v, b, n, er, cr, u };
+};
+
 export const AppProvider = ({ children }) => {
-const [bookings, setBookings] = useState([]);
-const [venues, setVenues] = useState([]);
-const [users, setUsers] = useState([]);
-const [notifications, setNotifications] = useState([]);
-const [equipmentRequests, setEquipmentRequests] = useState([]);
-const [compromiseRequests, setCompromiseRequests] = useState([]);
+  const [bookings, setBookings]                     = useState([]);
+  const [venues, setVenues]                         = useState([]);
+  const [users, setUsers]                           = useState([]);
+  const [notifications, setNotifications]           = useState([]);
+  const [equipmentRequests, setEquipmentRequests]   = useState([]);
+  const [compromiseRequests, setCompromiseRequests] = useState([]);
+  const [loading, setLoading]                       = useState(true);
 
-  // Load real data from backend if token exists
-const [loading, setLoading] = useState(true);
-
-useEffect(() => {
-  const token = localStorage.getItem('lbs_token');
-  if (!token) {
-    setLoading(false);
-    return;
-  }
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
+    const token = localStorage.getItem('lbs_token');
+    if (!token) { setLoading(false); return; }
+    setLoading(true);
     try {
-      const [v, b, n, er, cr, u] = await Promise.all([
-        api.get('/venues'),
-        api.get('/bookings'),
-        api.get('/notifications'),
-        api.get('/equipment-requests'),
-        api.get('/compromise-requests'),
-        api.get('/users'),
-      ]);
+      const { v, b, n, er, cr, u } = await fetchAllData();
       setVenues(v);
       setBookings(b);
       setNotifications(n);
@@ -42,9 +41,19 @@ useEffect(() => {
     } finally {
       setLoading(false);
     }
-  };
-  loadData();
-}, []);
+  }, []);
+
+  // Load on mount if token already exists (page refresh case)
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Load when login event fires (fresh login case)
+  useEffect(() => {
+    window.addEventListener('lbs-login', loadData);
+    return () => window.removeEventListener('lbs-login', loadData);
+  }, [loadData]);
+
   // ── Bookings ─────────────────────────────────────────────
   const approveBooking = useCallback(async (bookingId) => {
     try {
@@ -64,12 +73,12 @@ useEffect(() => {
     }
   }, []);
 
-  // Instant booking — status is 'confirmed' immediately
-const createBooking = useCallback(async (data) => {
-  const newBooking = await api.post('/bookings', data);
-  setBookings(prev => [newBooking, ...prev]);
-  return newBooking;
-}, []);
+  const createBooking = useCallback(async (data) => {
+    const newBooking = await api.post('/bookings', data);
+    setBookings(prev => [newBooking, ...prev]);
+    return newBooking;
+  }, []);
+
   // ── Venues ───────────────────────────────────────────────
   const addVenue = useCallback(async (data) => {
     try {
@@ -183,16 +192,12 @@ const createBooking = useCallback(async (data) => {
     try {
       const updated = await api.put(`/compromise-requests/${reqId}`, { status });
       setCompromiseRequests(prev => prev.map(r => r.id === reqId ? updated : r));
-
-      // If accepted — update local booking state too (cancel old, add new)
       if (status === 'accepted') {
         const cReq = compromiseRequests.find(r => r.id === reqId);
         if (cReq) {
-          // Cancel the original booking
           setBookings(prev => prev.map(b =>
             b.id === cReq.bookingId ? { ...b, status: 'cancelled' } : b
           ));
-          // Add new confirmed booking for requesting faculty
           const newBooking = {
             id: 'b' + Date.now(),
             venueId:       cReq.venueId,
@@ -216,7 +221,6 @@ const createBooking = useCallback(async (data) => {
     }
   }, [compromiseRequests]);
 
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -227,6 +231,7 @@ const createBooking = useCallback(async (data) => {
       </div>
     );
   }
+
   return (
     <AppContext.Provider value={{
       bookings, venues, users, notifications, equipmentRequests, compromiseRequests,
@@ -241,7 +246,6 @@ const createBooking = useCallback(async (data) => {
     </AppContext.Provider>
   );
 };
-
 
 export const useApp = () => {
   const ctx = useContext(AppContext);

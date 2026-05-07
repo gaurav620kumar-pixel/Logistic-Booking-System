@@ -1,7 +1,7 @@
 {
-  "name": "lbs-backend-mongodb",
+  "name": "lbs-backend",
   "version": "1.0.0",
-  "description": "Logistics Booking System backend — MongoDB/Mongoose",
+  "description": "Logistics Booking System — MongoDB/Mongoose backend",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

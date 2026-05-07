@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
-const schema = new mongoose.Schema({
+const { Schema, model } = require('mongoose');
+module.exports = model('EquipmentRequest', new Schema({
   id:          { type: String, required: true, unique: true },
   facultyId:   { type: String, required: true },
   facultyName: { type: String, default: '' },
@@ -12,5 +12,4 @@ const schema = new mongoose.Schema({
   status:      { type: String, enum: ['pending','acknowledged','ready'], default: 'pending' },
   notes:       { type: String, default: '' },
   createdAt:   { type: String, default: () => new Date().toISOString() },
-});
-module.exports = mongoose.model('EquipmentRequest', schema);
+}));

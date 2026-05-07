@@ -14,7 +14,7 @@ export default function AllBookingsPage() {
     : bookings.filter(b => b.status === statusFilter);
 
   const statusVariant = (s) =>
-    s === 'confirmed' ? 'default' :
+    (s === 'confirmed' || s === 'approved') ? 'default' :
     s === 'cancelled' ? 'secondary' :
     s === 'rejected'  ? 'destructive' : 'secondary';
 
