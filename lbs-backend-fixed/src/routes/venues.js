@@ -4,6 +4,7 @@ const auth   = require('../middleware/auth');
 
 router.use(auth);
 
+// GET /api/venues
 router.get('/', async (req, res) => {
   try {
     const venues = await Venue.find({}, { __v: 0 });
@@ -11,6 +12,7 @@ router.get('/', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// GET /api/venues/:id/status
 router.get('/:id/status', async (req, res) => {
   try {
     const venue = await Venue.findOne({ id: req.params.id });
@@ -19,6 +21,7 @@ router.get('/:id/status', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// POST /api/venues
 router.post('/', async (req, res) => {
   try {
     const { name, type, capacity, building, floor, status, equipment, assignedStaff } = req.body;
@@ -38,6 +41,7 @@ router.post('/', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// PUT /api/venues/:id
 router.put('/:id', async (req, res) => {
   try {
     const fields = ['name','type','capacity','building','floor','status','equipment','assignedStaff'];
@@ -50,6 +54,7 @@ router.put('/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// DELETE /api/venues/:id
 router.delete('/:id', async (req, res) => {
   try {
     const venue = await Venue.findOneAndDelete({ id: req.params.id });

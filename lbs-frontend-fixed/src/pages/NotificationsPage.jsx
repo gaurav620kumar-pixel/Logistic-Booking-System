@@ -27,15 +27,17 @@ export default function NotificationsPage() {
 
   const unreadCount = notifs.filter(n => !n.read).length;
 
-  const handleClick = (n) => {
-    // ✅ FIX: n.id → n._id
-    markNotificationRead(n.id);
-
-    const cfg = typeConfig[n.type] || typeConfig.system;
-    const dest = n.link || cfg.link;
-    navigate(dest);
-  };
-
+const handleClick = (n) => {
+  markNotificationRead(n.id);
+  const cfg = typeConfig[n.type] || typeConfig.system;
+  
+  // Staff should never go to bookings pages
+  let dest = n.link || cfg.link;
+  if (user.role === 'staff') {
+    dest = '/equipment-requests';
+  }
+  navigate(dest);
+};
   return (
     <div className="space-y-6 animate-fade-in max-w-2xl mx-auto">
       <div className="flex items-center justify-between">

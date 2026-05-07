@@ -29,6 +29,6 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`\n🚀 LBS Backend running on http://localhost:${PORT}`);
-  console.log(`✅ Database: MongoDB (${process.env.MONGO_URI})\n`);
+  console.log(`\n LBS Backend running on http://localhost:${PORT}`);
+  console.log(` Database: MongoDB (${process.env.MONGO_URI})\n`);
 });

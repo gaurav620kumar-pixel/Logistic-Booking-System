@@ -24,7 +24,7 @@ export default function MyBookingsPage() {
   const statusColor = { confirmed: 'text-success', cancelled: 'text-muted-foreground', rejected: 'text-destructive' };
 
   const statusBadgeClass = (s) =>
-    s === 'confirmed' ? 'bg-success/20 text-success border-success/30' :
+   (s === 'confirmed' || s === 'approved') ? 'bg-success/20 text-success border-success/30' :
     s === 'cancelled' ? 'bg-muted text-muted-foreground border-border' :
     s === 'rejected'  ? 'bg-destructive/20 text-destructive border-destructive/30' :
     'bg-warning/20 text-warning border-warning/30';

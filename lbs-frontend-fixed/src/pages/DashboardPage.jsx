@@ -14,7 +14,7 @@ export default function DashboardPage() {
   // ✅ FIX: user.id → user.id
   const userBookings     = user.role === 'admin' ? bookings : bookings.filter(b => b.facultyId === user.id);
   const userNotifs       = notifications.filter(n => n.userId === user.id && !n.read);
-  const pendingBookings  = bookings.filter(b => b.status === 'pending');
+ const pendingBookings  = bookings.filter(b => b.status === 'confirmed');
   const approvedBookings = userBookings.filter(b => b.status === 'approved');
   const maintenanceVenues = venues.filter(v => v.status === 'maintenance');
 
@@ -24,7 +24,7 @@ export default function DashboardPage() {
 );
   const statCards = user.role === 'admin' ? [
     { label: 'Total Bookings',     value: bookings.length,           icon: CalendarCheck, color: 'text-primary',     link: '/all-bookings' },
-    { label: 'Pending Approvals',  value: pendingBookings.length,    icon: Clock,         color: 'text-warning',     link: '/all-bookings' },
+    
     { label: 'Total Venues',       value: venues.length,             icon: MapPin,        color: 'text-success',     link: '/manage-venues' },
     { label: 'Under Maintenance',  value: maintenanceVenues.length,  icon: AlertTriangle, color: 'text-destructive', link: '/manage-venues' },
   ] : user.role === 'staff' ? [
@@ -36,13 +36,14 @@ export default function DashboardPage() {
   ] : [
     { label: 'My Bookings', value: userBookings.length,    icon: CalendarCheck, color: 'text-primary',     link: '/my-bookings' },
     // ✅ FIX HERE
-    { label: 'Pending',     value: pendingBookings.filter(b => b.facultyId === user.id).length, icon: Clock, color: 'text-warning', link: '/my-bookings' },
+    { label: 'confirmed',     value: pendingBookings.filter(b => b.facultyId === user.id).length, icon: Clock, color: 'text-success', link: '/my-bookings' },
     { label: 'Approved',    value: approvedBookings.length, icon: CalendarCheck, color: 'text-success',    link: '/my-bookings' },
     { label: 'Notifications', value: userNotifs.length,    icon: Bell,          color: 'text-info',        link: '/notifications' },
   ];
 
-  const statusVariant = (s) => s === 'approved' ? 'default' : s === 'pending' ? 'secondary' : 'destructive';
-
+const statusVariant = (s) => 
+  (s === 'confirmed' || s === 'approved') ? 'default' : 
+  (s === 'cancelled' || s === 'pending') ? 'secondary' : 'destructive';
   return (
     <div className="space-y-6 animate-fade-in">
       <div>

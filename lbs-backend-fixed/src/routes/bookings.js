@@ -26,7 +26,7 @@ router.get('/check-conflict', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// POST /api/bookings — instantly confirmed
+// POST /api/bookings — saves to MongoDB, instantly confirmed
 router.post('/', async (req, res) => {
   try {
     const {
@@ -37,7 +37,7 @@ router.post('/', async (req, res) => {
     if (!venueId || !date || !timeSlotId || !purpose)
       return res.status(400).json({ error: 'venueId, date, timeSlotId and purpose are required' });
 
-    // Conflict check
+    // Check for conflict in MongoDB
     const conflict = await Booking.findOne({
       venueId, date, timeSlotId,
       status: { $nin: ['rejected', 'cancelled'] },
@@ -45,26 +45,30 @@ router.post('/', async (req, res) => {
     if (conflict)
       return res.status(409).json({ error: 'This venue slot is already booked' });
 
-    // Save booking to MongoDB
+    // Save new booking to MongoDB
     const booking = await new Booking({
-      id: 'b' + Date.now(),
-      venueId, venueName, facultyId, facultyName,
-      date, timeSlotId, timeSlotLabel: timeSlotLabel || '',
-      purpose, notes: notes || '',
+      id:              'b' + Date.now(),
+      venueId,         venueName,
+      facultyId,       facultyName,
+      date,            timeSlotId,
+      timeSlotLabel:   timeSlotLabel || '',
+      purpose,
+      notes:           notes || '',
       equipmentNeeded: equipmentNeeded || [],
-      status: 'confirmed',
-      createdAt: new Date().toISOString(),
+      status:          'confirmed',
+      createdAt:       new Date().toISOString(),
     }).save();
 
     // Notify assigned staff
     const venue = await Venue.findOne({ id: venueId });
     if (venue?.assignedStaff) {
       await new Notification({
-        id: 'n' + Date.now(),
-        userId: venue.assignedStaff,
-        title: 'New Venue Booking',
-        message: `${facultyName} has booked ${venueName} on ${date} at ${timeSlotLabel}.`,
-        type: 'booking', read: false,
+        id:        'n' + Date.now(),
+        userId:    venue.assignedStaff,
+        title:     'New Venue Booking',
+        message:   `${facultyName} has booked ${venueName} on ${date} at ${timeSlotLabel}.`,
+        type:      'booking',
+        read:      false,
         createdAt: new Date().toISOString(),
       }).save();
     }

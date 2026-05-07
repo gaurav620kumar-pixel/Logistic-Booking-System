@@ -4,6 +4,7 @@ const auth     = require('../middleware/auth');
 
 router.use(auth);
 
+// GET /api/timeslots
 router.get('/', async (req, res) => {
   try {
     const slots = await TimeSlot.find({}, { __v: 0 }).sort({ id: 1 });

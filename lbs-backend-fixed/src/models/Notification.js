@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
-const schema = new mongoose.Schema({
+const { Schema, model } = require('mongoose');
+module.exports = model('Notification', new Schema({
   id:        { type: String, required: true, unique: true },
   userId:    { type: String, required: true },
   title:     { type: String, required: true },
@@ -7,5 +7,4 @@ const schema = new mongoose.Schema({
   type:      { type: String, default: 'system' },
   read:      { type: Boolean, default: false },
   createdAt: { type: String, default: () => new Date().toISOString() },
-});
-module.exports = mongoose.model('Notification', schema);
+}));

@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
-const schema = new mongoose.Schema({
+const { Schema, model } = require('mongoose');
+module.exports = model('CompromiseRequest', new Schema({
   id:              { type: String, required: true, unique: true },
   fromFacultyId:   { type: String, required: true },
   fromFacultyName: { type: String, default: '' },
@@ -14,5 +14,4 @@ const schema = new mongoose.Schema({
   reason:          { type: String, required: true },
   status:          { type: String, enum: ['pending','accepted','declined'], default: 'pending' },
   createdAt:       { type: String, default: () => new Date().toISOString() },
-});
-module.exports = mongoose.model('CompromiseRequest', schema);
+}));
